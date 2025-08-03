@@ -39,7 +39,7 @@ export interface AppState {
   isRunning: boolean;
   status: string;
   progress: number;
-  logs: string[];
+  logs: LogEntry[];
   generatedPosts: GeneratedPost[];
   activeTab: 'logs' | 'generating' | 'posts';
 }
@@ -67,7 +67,7 @@ export interface StatusDisplayProps {
 }
 
 export interface LogViewerProps {
-  logs: string[];
+  logs: LogEntry[];
   onClearLogs: () => void;
   className?: string;
 }

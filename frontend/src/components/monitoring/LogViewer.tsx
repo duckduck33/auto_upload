@@ -1,8 +1,14 @@
 import React from 'react';
 import { Button } from '../ui/button';
 
+interface LogEntry {
+  timestamp: string;
+  message: string;
+  level: 'info' | 'warning' | 'error';
+}
+
 interface LogViewerProps {
-  logs: any[];
+  logs: LogEntry[];
   onClearLogs: () => void;
   className?: string;
 }
@@ -39,7 +45,17 @@ export const LogViewer: React.FC<LogViewerProps> = ({
           <div className="space-y-2">
             {logs.map((log, index) => (
               <div key={index} className="text-sm text-gray-700 font-mono bg-white rounded-lg p-3 border border-gray-200">
-                {typeof log === 'string' ? log : log.message}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">[{log.timestamp}]</span>
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    log.level === 'error' ? 'bg-red-100 text-red-700' :
+                    log.level === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-blue-100 text-blue-700'
+                  }`}>
+                    {log.level}
+                  </span>
+                </div>
+                <div className="mt-1">{log.message}</div>
               </div>
             ))}
           </div>

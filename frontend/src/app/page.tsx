@@ -4,11 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { KeywordInput } from '../components/settings/KeywordInput';
 import { AutomationControls } from '../components/settings/AutomationControls';
 import { StatusDisplay } from '../components/settings/StatusDisplay';
+import NaverCredentials from '../components/settings/NaverCredentials';
 import { LogViewer } from '../components/monitoring/LogViewer';
 import { GeneratedPostViewer } from '../components/monitoring/GeneratedPostViewer';
-import GeneratingPostMonitor from '../components/monitoring/GeneratingPostMonitor';
 import { Tabs } from '../components/ui/tabs';
-import { apiClient, GeneratingPost } from '../lib/api';
+import { apiClient, GeneratingPost, LogEntry } from '../lib/api';
 import { storage } from '../lib/utils';
 import type { AppState, GeneratedPost } from '../types';
 
@@ -56,7 +56,11 @@ export default function Home() {
         // 실시간 상태 업데이트 시작
         startStatusPolling();
       } else {
-        const errorLog = `[${new Date().toISOString()}] 자동화 시작 실패: ${response.message}`;
+        const errorLog: LogEntry = {
+          timestamp: new Date().toISOString(),
+          message: `자동화 시작 실패: ${response.message}`,
+          level: 'error'
+        };
         updateState({ 
           isRunning: false, 
           status: `오류: ${response.message}`,
@@ -64,12 +68,16 @@ export default function Home() {
         });
       }
     } catch (error) {
-      const errorLog = `[${new Date().toISOString()}] 자동화 시작 중 네트워크 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
-      updateState({ 
-        isRunning: false, 
-        status: `오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
-        logs: [...state.logs, errorLog]
-      });
+              const errorLog: LogEntry = {
+          timestamp: new Date().toISOString(),
+          message: `자동화 시작 중 네트워크 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+          level: 'error'
+        };
+        updateState({ 
+          isRunning: false, 
+          status: `오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+          logs: [...state.logs, errorLog]
+        });
     }
   };
 
@@ -113,13 +121,13 @@ export default function Home() {
         const posts = await apiClient.getGeneratedPosts();
         const generating = await apiClient.getGeneratingPost();
 
-        console.log('폴링 결과:', { status, generating }); // 디버깅용
+        console.log('🔍 폴링 결과:', { status, generating }); // 디버깅용
 
         updateState({
           isRunning: status.isRunning,
           status: status.status,
           progress: status.progress,
-          logs: logs.map(log => `[${log.timestamp}] ${log.message}`),
+          logs: logs,
           generatedPosts: posts,
         });
 
@@ -132,7 +140,11 @@ export default function Home() {
       } catch (error) {
         console.error('상태 폴링 오류:', error);
         // 에러를 로그에 추가
-        const errorLog = `[${new Date().toISOString()}] API 연결 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
+        const errorLog: LogEntry = {
+          timestamp: new Date().toISOString(),
+          message: `API 연결 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+          level: 'error'
+        };
         updateState({
           logs: [...state.logs, errorLog],
           isRunning: false,
@@ -162,7 +174,7 @@ export default function Home() {
           isRunning: status.isRunning,
           status: status.status,
           progress: status.progress,
-          logs: logs.map(log => `[${log.timestamp}] ${log.message}`),
+          logs: logs,
           generatedPosts: posts,
         });
 
@@ -197,13 +209,18 @@ export default function Home() {
       {/* 헤더 */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 p-6 shadow-sm">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              네이버 블로그 AI 자동화
-            </h1>
-            <p className="text-gray-600 text-lg">
-              AI기반 스마트 콘텐츠 생성 및 자동 포스팅 시스템
-            </p>
+          <div className="flex justify-between items-center">
+            <div className="text-center flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                네이버 블로그 AI 자동화
+              </h1>
+              <p className="text-gray-600 text-lg">
+                AI기반 스마트 콘텐츠 생성 및 자동 포스팅 시스템
+              </p>
+            </div>
+            <div className="ml-4">
+              <NaverCredentials />
+            </div>
           </div>
         </div>
       </header>
@@ -211,7 +228,7 @@ export default function Home() {
       {/* 메인 컨텐츠 */}
       <main className="max-w-7xl mx-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 왼쪽 패널 - 설정 */}
+                    {/* 왼쪽 패널 - 설정 */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/50 shadow-lg">
             <div className="space-y-8">
               <KeywordInput
@@ -227,11 +244,6 @@ export default function Home() {
                 onStop={handleStopAutomation}
                 disabled={!state.keyword.trim()}
                 loading={state.isRunning}
-              />
-              
-              <StatusDisplay
-                status={state.status}
-                progress={state.progress}
               />
             </div>
           </div>

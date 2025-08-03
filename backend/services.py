@@ -253,102 +253,133 @@ def upload_to_naver_blog(title: str, content: str) -> dict:
         return {"success": False, "error": "info.json 파일에서 로그인 정보를 불러올 수 없습니다."}
     
     driver = None
-    try:
-        # 웹 드라이버 설정
-        chrome_options = Options()
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
         try:
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            print("✅ Chrome 드라이버 설정 완료")
+            print("🔍 이제부터 업로드를 진행합니다...")
+            # 웹 드라이버 설정
+            chrome_options = Options()
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_experimental_option('useAutomationExtension', False)
+            
+            try:
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                print("✅ Chrome 드라이버 설정 완료")
+            except Exception as e:
+                print(f"ChromeDriverManager 오류: {e}")
+                driver = webdriver.Chrome(options=chrome_options)
+        
+            driver.maximize_window()
+            
+            # 자동화 감지 방지
+            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            
+            driver.get('https://nid.naver.com/nidlogin.login')
+            time.sleep(5)  # 대기 시간 증가
+        
+            # 복사-붙여넣기 로그인
+            id_field = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "id")))
+            id_field.click()
+            id_field.clear()
+            time.sleep(2)
+            pyperclip.copy(naver_info['id'])
+            id_field.send_keys(Keys.CONTROL + 'v')
+            time.sleep(3)
+            
+            pw_field = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "pw")))
+            pw_field.click()
+            pw_field.clear()
+            time.sleep(2)
+            pyperclip.copy(naver_info['pw'])
+            pw_field.send_keys(Keys.CONTROL + 'v')
+            time.sleep(3)
+            
+            login_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "log.login")))
+            login_button.click()
+            time.sleep(8)  # 로그인 후 대기 시간 증가
+        
+            # 블로그 글쓰기 페이지로 이동 (아이디로 자동 추측)
+            blog_id = naver_info['id']
+            blog_write_url = f"https://blog.naver.com/{blog_id}?Redirect=Write&categoryNo=1"
+            driver.get(blog_write_url)
+            time.sleep(8)  # 페이지 로딩 대기 시간 증가
+        
+            # iframe 전환
+            WebDriverWait(driver, 15).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "mainFrame")))
+            
+            if not handle_popups(driver):
+                print("⚠️ 팝업 처리 실패")
+        
+            # 제목 입력
+            title_element = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".se-section-documentTitle"))
+            )
+            title_element.click()
+            time.sleep(2)
+            actions = ActionChains(driver)
+            for char in title:
+                actions.send_keys(char)
+                actions.pause(0.05)  # 타이핑 속도 증가
+            actions.perform()
+            time.sleep(3)
+        
+            # 내용 입력
+            content_element = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".se-section-text"))
+            )
+            content_element.click()
+            time.sleep(2)
+            actions = ActionChains(driver)
+            for char in content:
+                actions.send_keys(char)
+                actions.pause(0.03)  # 타이핑 속도 증가
+            actions.perform()
+            time.sleep(5)
+        
+            # 첫 번째 발행 버튼 클릭
+            publish_button = WebDriverWait(driver, 15).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "button.publish_btn__m9KHH"))
+            )
+            driver.execute_script("arguments[0].click();", publish_button)
+            time.sleep(3)
+            
+            # 두 번째 발행 버튼 (최종 확인) 클릭
+            confirm_button = WebDriverWait(driver, 15).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "button.confirm_btn__WEaBq"))
+            )
+            driver.execute_script("arguments[0].click();", confirm_button)
+            
+            time.sleep(10)  # 발행 완료 대기 시간 증가
+            
+            print("✅ 네이버 블로그 업로드 성공!")
+            blog_id = naver_info['id']
+            return {"success": True, "data": {"title": title, "url": f"https://blog.naver.com/{blog_id}"}}
+            
         except Exception as e:
-            print(f"ChromeDriverManager 오류: {e}")
-            driver = webdriver.Chrome(options=chrome_options)
+            retry_count += 1
+            print(f"❌ 업로드 시도 {retry_count} 실패: {e}")
+            
+            if driver:
+                try:
+                    driver.save_screenshot(f'error_screenshot_retry_{retry_count}.png')
+                except:
+                    pass
+                driver.quit()
+                driver = None
+            
+            if retry_count < max_retries:
+                print(f"🔄 {retry_count}초 후 재시도합니다...")
+                time.sleep(retry_count * 2)  # 재시도 간격 증가
+                continue
+            else:
+                print(f"❌ 최대 재시도 횟수({max_retries})에 도달했습니다.")
+                return {"success": False, "error": f"블로그 업로드 실패: {str(e)}"}
         
-        driver.maximize_window()
-        driver.get('https://nid.naver.com/nidlogin.login')
-        time.sleep(3)
-        
-        # 복사-붙여넣기 로그인
-        id_field = driver.find_element(By.ID, "id")
-        id_field.click()
-        id_field.clear()
-        time.sleep(1)
-        pyperclip.copy(naver_info['id'])
-        id_field.send_keys(Keys.CONTROL + 'v')
-        time.sleep(2)
-        
-        pw_field = driver.find_element(By.ID, "pw")
-        pw_field.click()
-        pw_field.clear()
-        time.sleep(1)
-        pyperclip.copy(naver_info['pw'])
-        pw_field.send_keys(Keys.CONTROL + 'v')
-        time.sleep(2)
-        
-        login_button = driver.find_element(By.ID, "log.login")
-        login_button.click()
-        time.sleep(5)
-        
-        # 블로그 글쓰기 페이지로 이동
-        blog_write_url = "https://blog.naver.com/biz8link?Redirect=Write&categoryNo=1"
-        driver.get(blog_write_url)
-        time.sleep(5)
-        
-        # iframe 전환
-        WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "mainFrame")))
-        
-        if not handle_popups(driver):
-            print("⚠️ 팝업 처리 실패")
-        
-        # 제목 입력
-        title_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, ".se-section-documentTitle"))
-        )
-        title_element.click()
-        actions = ActionChains(driver)
-        for char in title:
-            actions.send_keys(char)
-            actions.pause(0.01)
-        actions.perform()
-        time.sleep(2)
-        
-        # 내용 입력
-        content_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, ".se-section-text"))
-        )
-        content_element.click()
-        actions = ActionChains(driver)
-        for char in content:
-            actions.send_keys(char)
-            actions.pause(0.01)
-        actions.perform()
-        time.sleep(3)
-        
-        # 첫 번째 발행 버튼 클릭
-        publish_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "button.publish_btn__m9KHH"))
-        )
-        driver.execute_script("arguments[0].click();", publish_button)
-        
-        # 두 번째 발행 버튼 (최종 확인) 클릭
-        confirm_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "button.confirm_btn__WEaBq"))
-        )
-        driver.execute_script("arguments[0].click();", confirm_button)
-        
-        time.sleep(8)
-        
-        return {"success": True, "data": {"title": title, "url": "https://blog.naver.com/biz8link"}}
-        
-    except Exception as e:
-        print(f"자동 업로드 과정 중 오류가 발생했습니다: {e}")
-        if driver:
-            driver.save_screenshot('error_screenshot.png')
-        return {"success": False, "error": f"블로그 업로드 실패: {str(e)}"}
-    finally:
-        if driver:
-            driver.quit() 
+ 
