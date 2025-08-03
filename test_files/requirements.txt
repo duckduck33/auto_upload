@@ -1,0 +1,22 @@
+# === Naver Blog Auto Posting Project requirements.txt ===
+# Backend: FastAPI + Selenium + Gemini AI
+
+# === Web Framework ===
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# === Browser Automation ===
+selenium==4.15.2
+webdriver-manager==4.0.1
+
+# === Environment and Utilities ===
+python-dotenv==1.0.0
+python-multipart==0.0.6
+pyperclip==1.8.2
+
+# === AI and Content Generation ===
+google-generativeai==0.3.2
+
+# === Additional Dependencies ===
+requests==2.31.0
+typing-extensions==4.8.0

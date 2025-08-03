@@ -1,0 +1,139 @@
+# 📌 프로젝트명: 네이버 블로그 AI 자동화 플랫폼
+
+**AI기반 스마트 콘텐츠 생성 및 자동 포스팅 시스템**
+
+---
+
+## ✅ 주요 기능 요약
+
+### 1. 키워드 기반 자동화
+- 키워드 입력을 통한 자동 콘텐츠 생성
+- 포스팅 개수(1개)
+
+### 2. AI 콘텐츠 생성
+- 자동 블로그 글 생성
+- 키워드 기반 맞춤형 콘텐츠 생성
+
+### 3. 자동 포스팅
+- 네이버 블로그 자동 업로드 (Selenium 활용)
+- 실시간 진행 상황 모니터링 ( 2개의 엔드포인트 구분해서)
+
+### 4. 모니터링 시스템
+- 실시간 로그 확인
+- 생성된 글 미리보기
+- 진행 상황 및 상태 표시(%로 시각적으로)
+
+---
+
+## ✅ 기술 스택
+
+### 📦 백엔드
+- Python (FastAPI)
+- Selenium
+- 재미니 API
+
+### 🎨 프론트엔드
+- Next.js 14 (App Router)
+- TypeScript
+- TailwindCSS
+- Electron (데스크톱 앱)
+
+### ⚙️ 기타
+- .env 환경 변수 파일
+
+---
+
+## ✅ 프로젝트 폴더 구조
+
+```
+Auto_Upload/
+│
+├── backend/                    # ✅ 완성됨
+│   ├── main.py
+│   ├── services.py
+│   ├── models.py
+│   ├── requirements.txt
+│   ├── .env
+│   ├── info.json
+│   └── prompt.json
+│
+├── frontend/
+│   ├── public/
+│   │   ├── icons/
+│   │   └── assets/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx          # 루트 레이아웃
+│   │   │   ├── page.tsx            # 메인 페이지
+│   │   │   └── globals.css         # 전역 스타일
+│   │   ├── components/
+│   │   │   ├── ui/
+│   │   │   │   ├── button.tsx      # 버튼 컴포넌트
+│   │   │   │   ├── input.tsx       # 입력 필드 컴포넌트
+│   │   │   │   ├── progress.tsx    # 진행률 바 컴포넌트
+│   │   │   │   └── tabs.tsx        # 탭 컴포넌트
+│   │   │   ├── settings/
+│   │   │   │   ├── KeywordInput.tsx    # 키워드 입력
+│   │   │   │   ├── PostCountSelector.tsx # 포스팅 개수 선택
+│   │   │   │   ├── AutomationControls.tsx # 자동화 컨트롤
+│   │   │   │   └── StatusDisplay.tsx     # 상태 표시
+│   │   │   └── monitoring/
+│   │   │       ├── LogViewer.tsx        # 실시간 로그 뷰어
+│   │   │       ├── GeneratedPostViewer.tsx # 생성된 글 뷰어
+│   │   │       └── ProgressMonitor.tsx      # 진행 상황 모니터
+│   │   ├── lib/
+│   │   │   ├── api.ts              # API 클라이언트
+│   │   │   └── utils.ts            # 유틸리티 함수
+│   │   └── types/
+│   │       └── index.ts            # TypeScript 타입 정의
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   └── next.config.ts
+│
+├── .env                       # 환경변수 (API 키 등)
+├── README.md                  # 프로젝트 설명
+└── manual.txt                # 프로젝트 매뉴얼
+```
+
+---
+
+## ✅ UI 구성 요소
+
+### 왼쪽 패널 - 설정 (Settings)
+- **키워드 입력**: 텍스트 입력 필드
+- **자동화 컨트롤**: 시작/정지 버튼
+- **상태 표시**: 현재 상태 텍스트
+- **진행률**: 진행률 바 (0-100%)
+
+### 오른쪽 패널 - 모니터링 (Monitoring)
+- **탭 시스템**: 실시간 로그 / 생성된 글
+- **로그 뷰어**: 실시간 로그 표시 영역
+- **로그 지우기**: 로그 초기화 버튼
+
+---
+
+## ✅ 개발 단계
+
+### 1단계: 기본 UI 구조
+- 레이아웃 및 패널 구성
+- 기본 컴포넌트 생성
+
+### 2단계: 설정 패널 구현
+- 키워드 입력 기능
+
+- 자동화 컨트롤 버튼
+
+### 3단계: 모니터링 패널 구현
+- 탭 시스템
+- 로그 뷰어
+- 진행률 표시
+
+### 4단계: 백엔드 연동
+- API 연동
+- 실시간 상태 업데이트
+- 자동화 기능 연결
+
+### 5단계: 데스크톱 앱 변환
+- Electron 설정
+- 네이티브 앱 빌드
