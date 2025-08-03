@@ -4,7 +4,7 @@ from models import GenerateRequest, GenerateResponse, UploadRequest, UploadRespo
 from services import GeminiContentGenerator, upload_to_naver_blog
 import uvicorn
 from typing import List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import json
 import asyncio
 import sys
@@ -40,10 +40,13 @@ logs = []
 generated_posts = []
 current_generating_content = ""  # 현재 생성 중인 콘텐츠
 
+# 한국 시간대 설정
+KST = timezone(timedelta(hours=9))
+
 # print 구문을 자동으로 automation_state에 추가하는 함수
 def add_to_logs(message: str):
     automation_state["print_messages"].append({
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(KST).isoformat(),
         "message": message,
         "level": "info"
     })
@@ -88,7 +91,7 @@ async def start_automation(request: Dict[str, Any]):
         # 생성 중 상태 설정
         automation_state["current_generating_post"] = {
             "keyword": keyword,
-            "started_at": datetime.now().isoformat(),
+            "started_at": datetime.now(KST).isoformat(),
             "status": "생성 중..."
         }
         current_generating_content = "AI 모델 초기화 중..."
@@ -199,13 +202,13 @@ async def generate_post_process(keyword: str):
     
     try:
         # 1단계: AI 모델 초기화
-        print(f"🔍 1단계: AI 모델 초기화 시작")
-        add_to_logs("🔍 1단계: AI 모델 초기화 시작")
+        print(f"🔍 1단계: AI 모델 초기화 시작 (키워드: {keyword})")
+        add_to_logs(f"🔍 1단계: AI 모델 초기화 시작 (키워드: {keyword})")
         automation_state["current_step"] = 1
         automation_state["progress"] = 33
-        automation_state["status"] = "AI 모델 초기화 중..."
-        automation_state["step_description"] = "AI 모델 초기화 중..."
-        current_generating_content = "AI 모델 초기화 중..."
+        automation_state["status"] = f"AI 모델 초기화 중... (키워드: {keyword})"
+        automation_state["step_description"] = f"AI 모델 초기화 중... (키워드: {keyword})"
+        current_generating_content = f"AI 모델 초기화 중... (키워드: {keyword})"
         
         # Gemini 콘텐츠 생성기 초기화
         try:
@@ -217,8 +220,8 @@ async def generate_post_process(keyword: str):
             raise e
         
         await asyncio.sleep(2)
-        print(f"✅ 1단계: AI 모델 초기화 완료")
-        add_to_logs("✅ 1단계: AI 모델 초기화 완료")
+        print(f"✅ 1단계: AI 모델 초기화 완료 (키워드: {keyword})")
+        add_to_logs(f"✅ 1단계: AI 모델 초기화 완료 (키워드: {keyword})")
         
         # 2단계: 블로그 컨텐츠 생성
         print(f"🔍 2단계: 블로그 컨텐츠 생성 시작")
@@ -243,7 +246,7 @@ async def generate_post_process(keyword: str):
             "id": f"post_{len(generated_posts) + 1}",
             "title": blog_post['title'],
             "content": blog_post['content'],
-            "createdAt": datetime.now().isoformat(),
+            "createdAt": datetime.now(KST).isoformat(),
             "status": "생성 완료"
         }
         generated_posts.append(post_data)

@@ -13,7 +13,7 @@ export interface AutomationResponse {
 export interface LogEntry {
   timestamp: string;
   message: string;
-  level: 'info' | 'warning' | 'error';
+  level: 'error' | 'warning' | 'info' | 'success';
 }
 
 export interface GeneratedPost {
@@ -21,6 +21,9 @@ export interface GeneratedPost {
   title: string;
   content: string;
   createdAt: string;
+  status: string;
+  uploaded?: boolean;
+  blogUrl?: string;
 }
 
 export interface AutomationStatus {
@@ -30,6 +33,8 @@ export interface AutomationStatus {
   currentStep: number;
   totalSteps: number;
   stepDescription: string;
+  currentGeneratingPost: GeneratingPost | null;
+  printMessages: LogEntry[];
 }
 
 // UI 상태 타입들
@@ -60,31 +65,26 @@ export interface AutomationControlsProps {
   loading?: boolean;
 }
 
-export interface StatusDisplayProps {
-  status: string;
-  progress: number;
-  className?: string;
-}
-
 export interface LogViewerProps {
   logs: LogEntry[];
   onClearLogs: () => void;
   className?: string;
 }
 
-export interface GeneratedPostViewerProps {
-  posts: GeneratedPost[];
-  className?: string;
-}
-
-export interface ProgressMonitorProps {
-  currentStep: number;
-  totalSteps: number;
-  stepDescription: string;
-  className?: string;
-}
-
 // 이벤트 핸들러 타입들
 export type AutomationEventHandler = () => void;
 export type KeywordChangeHandler = (keyword: string) => void;
-export type TabChangeHandler = (tabId: string) => void; 
+export type TabChangeHandler = (tabId: string) => void;
+
+// 추가 타입들
+export interface GeneratingPost {
+  keyword: string;
+  startedAt: string;
+  status: string;
+  isGenerating: boolean;
+}
+
+export interface NaverCredentials {
+  naverId: string;
+  hasPassword: boolean;
+} 

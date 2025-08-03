@@ -1,11 +1,6 @@
 import React from 'react';
 import { Button } from '../ui/button';
-
-interface LogEntry {
-  timestamp: string;
-  message: string;
-  level: 'info' | 'warning' | 'error';
-}
+import type { LogEntry } from '../../types';
 
 interface LogViewerProps {
   logs: LogEntry[];

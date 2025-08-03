@@ -5,7 +5,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
@@ -35,12 +34,8 @@ class GeminiContentGenerator:
         Args:
             api_key: Gemini API 키. None이면 환경변수에서 가져옴
         """
-        # .env 파일 로드
-        load_dotenv()
-        
-        self.api_key = api_key or os.getenv('GEMINI_API_KEY')
-        if not self.api_key:
-            raise ValueError("Gemini API 키가 필요합니다. 환경변수 GEMINI_API_KEY를 설정하거나 api_key 파라미터를 전달하세요.")
+        # API 키 하드코딩
+        self.api_key = api_key or "AIzaSyBvNTKAbH0XaL1qaDJkH7JD39nvcjKSdyM"
         
         # Gemini API 설정
         genai.configure(api_key=self.api_key)
@@ -269,12 +264,29 @@ def upload_to_naver_blog(title: str, content: str) -> dict:
             chrome_options.add_experimental_option('useAutomationExtension', False)
             
             try:
-                service = Service(ChromeDriverManager().install())
+                # 레일웨이 환경에 맞는 Chrome 옵션 추가
+                chrome_options.add_argument("--headless")  # 헤드리스 모드
+                chrome_options.add_argument("--no-sandbox")
+                chrome_options.add_argument("--disable-dev-shm-usage")
+                chrome_options.add_argument("--disable-gpu")
+                chrome_options.add_argument("--window-size=1920,1080")
+                chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                chrome_options.add_argument("--disable-extensions")
+                chrome_options.add_argument("--disable-plugins")
+                chrome_options.add_argument("--disable-images")
+                
+                # Docker에서 설치한 ChromeDriver 사용
+                service = Service("/usr/local/bin/chromedriver")
                 driver = webdriver.Chrome(service=service, options=chrome_options)
                 print("✅ Chrome 드라이버 설정 완료")
             except Exception as e:
-                print(f"ChromeDriverManager 오류: {e}")
-                driver = webdriver.Chrome(options=chrome_options)
+                print(f"ChromeDriver 오류: {e}")
+                # 대체 방법으로 시도
+                try:
+                    driver = webdriver.Chrome(options=chrome_options)
+                except Exception as e2:
+                    print(f"Chrome 드라이버 초기화 실패: {e2}")
+                    raise e2
         
             driver.maximize_window()
             
@@ -284,21 +296,25 @@ def upload_to_naver_blog(title: str, content: str) -> dict:
             driver.get('https://nid.naver.com/nidlogin.login')
             time.sleep(5)  # 대기 시간 증가
         
-            # 복사-붙여넣기 로그인
+            # 직접 입력 방식으로 로그인 (헤드리스 환경 대응)
             id_field = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "id")))
             id_field.click()
             id_field.clear()
             time.sleep(2)
-            pyperclip.copy(naver_info['id'])
-            id_field.send_keys(Keys.CONTROL + 'v')
+            # 직접 입력
+            for char in naver_info['id']:
+                id_field.send_keys(char)
+                time.sleep(0.1)
             time.sleep(3)
             
             pw_field = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "pw")))
             pw_field.click()
             pw_field.clear()
             time.sleep(2)
-            pyperclip.copy(naver_info['pw'])
-            pw_field.send_keys(Keys.CONTROL + 'v')
+            # 직접 입력
+            for char in naver_info['pw']:
+                pw_field.send_keys(char)
+                time.sleep(0.1)
             time.sleep(3)
             
             login_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "log.login")))

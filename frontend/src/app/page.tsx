@@ -3,14 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { KeywordInput } from '../components/settings/KeywordInput';
 import { AutomationControls } from '../components/settings/AutomationControls';
-import { StatusDisplay } from '../components/settings/StatusDisplay';
 import NaverCredentials from '../components/settings/NaverCredentials';
 import { LogViewer } from '../components/monitoring/LogViewer';
-import { GeneratedPostViewer } from '../components/monitoring/GeneratedPostViewer';
 import { Tabs } from '../components/ui/tabs';
-import { apiClient, GeneratingPost, LogEntry } from '../lib/api';
+import { apiClient } from '../lib/api';
+import type { LogEntry } from '../types';
 import { storage } from '../lib/utils';
-import type { AppState, GeneratedPost } from '../types';
+import type { AppState } from '../types';
 
 export default function Home() {
   const [state, setState] = useState<AppState>({
@@ -24,7 +23,7 @@ export default function Home() {
     activeTab: 'logs',
   });
 
-  const [generatingPost, setGeneratingPost] = useState<GeneratingPost | null>(null);
+
 
   // 상태 업데이트 함수
   const updateState = (updates: Partial<AppState>) => {
@@ -114,14 +113,17 @@ export default function Home() {
 
   // 상태 폴링
   const startStatusPolling = () => {
+    let isPolling = false; // 중복 폴링 방지
     const pollStatus = async () => {
+      if (isPolling) return; // 이미 폴링 중이면 중단
+      isPolling = true;
+      
       try {
         const status = await apiClient.getStatus();
         const logs = await apiClient.getLogs();
         const posts = await apiClient.getGeneratedPosts();
-        const generating = await apiClient.getGeneratingPost();
 
-        console.log('🔍 폴링 결과:', { status, generating }); // 디버깅용
+        console.log('🔍 폴링 결과:', { status }); // 디버깅용
 
         updateState({
           isRunning: status.isRunning,
@@ -131,11 +133,50 @@ export default function Home() {
           generatedPosts: posts,
         });
 
-        setGeneratingPost(generating);
+        // 자동화가 실행 중이면 계속 폴링
+        if (status.isRunning) {
+          setTimeout(pollStatus, 3000); // 3초마다 폴링으로 변경
+        } else {
+          // 자동화가 실행되지 않으면 폴링 중단
+          isPolling = false;
+        }
+      } catch (error) {
+        console.error('상태 폴링 오류:', error);
+        // 에러를 로그에 추가
+        const errorLog: LogEntry = {
+          timestamp: new Date().toISOString(),
+          message: `API 연결 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+          level: 'error'
+        };
+        updateState({
+          logs: [...state.logs, errorLog],
+          isRunning: false,
+          status: 'API 연결 오류'
+        });
+        isPolling = false; // 에러 발생 시에도 폴링 중단
+      }
+    };
+      try {
+        const status = await apiClient.getStatus();
+        const logs = await apiClient.getLogs();
+        const posts = await apiClient.getGeneratedPosts();
 
-        // 자동화가 실행 중이거나 생성 중인 글이 있으면 계속 폴링
-        if (status.isRunning || (generating && generating.isGenerating)) {
-          setTimeout(pollStatus, 1000); // 1초마다 폴링
+        console.log('🔍 폴링 결과:', { status }); // 디버깅용
+
+        updateState({
+          isRunning: status.isRunning,
+          status: status.status,
+          progress: status.progress,
+          logs: logs,
+          generatedPosts: posts,
+        });
+
+        // 자동화가 실행 중이면 계속 폴링
+        if (status.isRunning) {
+          setTimeout(pollStatus, 3000); // 3초마다 폴링으로 변경
+        } else {
+          // 자동화가 실행되지 않으면 폴링 중단
+          isPolling = false;
         }
       } catch (error) {
         console.error('상태 폴링 오류:', error);
@@ -168,7 +209,6 @@ export default function Home() {
         const status = await apiClient.getStatus();
         const logs = await apiClient.getLogs();
         const posts = await apiClient.getGeneratedPosts();
-        const generating = await apiClient.getGeneratingPost();
 
         updateState({
           isRunning: status.isRunning,
@@ -177,8 +217,6 @@ export default function Home() {
           logs: logs,
           generatedPosts: posts,
         });
-
-        setGeneratingPost(generating);
 
         if (status.isRunning) {
           startStatusPolling();
@@ -189,7 +227,7 @@ export default function Home() {
     };
 
     loadInitialState();
-  }, []);
+  }, []); // 의존성 배열을 비워서 한 번만 실행
 
   const tabs = [
     {

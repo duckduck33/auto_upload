@@ -27,8 +27,8 @@ export default function NaverCredentials({ className = '' }: NaverCredentialsPro
         setNaverId(response.data.naverId);
         setHasPassword(response.data.hasPassword);
       }
-    } catch (error) {
-      console.error('네이버 로그인 정보 조회 실패:', error);
+    } catch {
+      console.error('네이버 로그인 정보 조회 실패');
     }
   };
 
@@ -51,7 +51,7 @@ export default function NaverCredentials({ className = '' }: NaverCredentialsPro
       } else {
         setMessage(response.message || '저장에 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       setMessage('저장 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
